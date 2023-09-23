@@ -2,6 +2,7 @@ mod compress;
 
 use std::env;
 use std::fs;
+use std::fs::File;
 use walkdir::WalkDir;
 
 fn main() {
@@ -29,23 +30,31 @@ fn iterate_directory(dir: String) {
         for it in walker {
             let entry = it.unwrap();
             let path = entry.path().to_str().unwrap().to_owned();
-            // println!("Iterate {:?}", entry.path());
-            if entry.file_type().is_file() {
-                let path_clone = path.clone();
-                scope.spawn(move |_| {
-                    compress::gzip(path_clone).unwrap();
-                });
 
-                let path_clone = path.clone();
-                scope.spawn(move |_| {
-                    compress::brotli(path_clone.clone()).unwrap();
-                });
-
-                let path_clone = path.clone();
-                scope.spawn(move |_| {
-                    compress::zstd(path_clone.clone()).unwrap();
-                });
+            if !entry.file_type().is_file() {
+                continue;
             }
+
+            scope.spawn(move |_| {
+                let max_size = match compress::file_size(path.clone()) {
+                    Ok(len) => len,
+                    Err(e) => {
+                        println!("Error processing {}: {}", path.clone(), e.to_string());
+                        return;
+                    }
+                };
+
+                // Sorted by browser compatibility, prefer older format if smaller
+                let size = compress::gzip(path.clone(), max_size).unwrap();
+                let max_size = std::cmp::min(max_size, size);
+                let size = compress::brotli(path.clone(), max_size).unwrap();
+                let max_size = std::cmp::min(max_size, size);
+                let size = compress::zstd(path.clone(), max_size).unwrap();
+                let max_size = std::cmp::min(max_size, size);
+
+                // Suppress unused code warning
+                let _ = max_size;
+            });
         }
     });
 }
