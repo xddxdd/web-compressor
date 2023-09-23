@@ -20,18 +20,32 @@ fn is_compressed(file: String) -> bool {
 }
 
 fn iterate_directory(dir: String) {
-    println!("Scanning {:?}", dir);
-    let walker = WalkDir::new(dir)
-        .into_iter()
-        .filter_entry(|e| !is_compressed(e.path().to_str().unwrap().to_owned()));
-    for it in walker {
-        let entry = it.unwrap();
-        let path = entry.path().to_str().unwrap().to_owned();
-        // println!("Iterate {:?}", entry.path());
-        if entry.file_type().is_file() {
-            compress::gzip(path.clone()).unwrap();
-            compress::brotli(path.clone()).unwrap();
-            compress::zstd(path.clone()).unwrap();
+    rayon::scope(|scope| {
+        println!("Scanning {:?}", dir);
+        let walker = WalkDir::new(dir)
+            .into_iter()
+            .filter_entry(|e| !is_compressed(e.path().to_str().unwrap().to_owned()));
+
+        for it in walker {
+            let entry = it.unwrap();
+            let path = entry.path().to_str().unwrap().to_owned();
+            // println!("Iterate {:?}", entry.path());
+            if entry.file_type().is_file() {
+                let path_clone = path.clone();
+                scope.spawn(move |_| {
+                    compress::gzip(path_clone).unwrap();
+                });
+
+                let path_clone = path.clone();
+                scope.spawn(move |_| {
+                    compress::brotli(path_clone.clone()).unwrap();
+                });
+
+                let path_clone = path.clone();
+                scope.spawn(move |_| {
+                    compress::zstd(path_clone.clone()).unwrap();
+                });
+            }
         }
-    }
+    });
 }

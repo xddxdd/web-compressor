@@ -5,6 +5,7 @@ use std::fs::File;
 use std::io::BufRead;
 use std::io::BufReader;
 use std::io::Read;
+use std::io::Seek;
 use std::io::Write;
 use std::path::Path;
 
@@ -66,6 +67,7 @@ fn compress_to_writer(
         Err(error) => return Err(error),
     };
 
+    // Create a cloned output file object for writer
     let mut e = writer(match output_file.try_clone() {
         Ok(f) => Box::new(f),
         Err(error) => return Err(error),
@@ -76,11 +78,15 @@ fn compress_to_writer(
         Err(error) => return Err(error),
     };
 
-    let output_size = match Read::by_ref(&mut output_file).metadata() {
-        Ok(metadata) => metadata.len(),
+    // Destruct object to write everything into output file
+    std::mem::drop(e);
+
+    let output_size = match Write::by_ref(&mut output_file).seek(std::io::SeekFrom::Current(0)) {
+        Ok(pos) => pos,
         Err(error) => return Err(error),
     };
 
+    // Destruct object to flush output file
     std::mem::drop(output_file);
 
     if output_size < input_size {
