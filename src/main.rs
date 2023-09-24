@@ -5,12 +5,17 @@ use std::fs;
 use walkdir::WalkDir;
 
 fn main() {
-    let dir = if env::args().count() >= 2 {
-        fs::canonicalize(env::args().nth(1).unwrap())
-    } else {
-        env::current_dir()
-    };
-    let dir = dir.unwrap().to_str().unwrap().to_owned();
+    if env::args().count() != 2 {
+        let argv_0 = env::args().nth(0).unwrap();
+        println!("Usage: {} path/to/compress", argv_0);
+        std::process::exit(1);
+    }
+
+    let dir = fs::canonicalize(env::args().nth(1).unwrap())
+        .unwrap()
+        .to_str()
+        .unwrap()
+        .to_owned();
 
     iterate_directory(dir);
 }
