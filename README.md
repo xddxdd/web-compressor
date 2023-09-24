@@ -15,3 +15,7 @@ This program will compress **everything** in the target folder into:
 - Zstd `.zst`: only if smaller than original file, Gzip and Brotli
 
 This program will run compression steps in parallel, utilizing all CPU cores.
+
+## License
+
+Unlicense.
