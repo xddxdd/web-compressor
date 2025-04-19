@@ -14,7 +14,11 @@ struct Args {
     target: String,
 
     /// Extensions to be compressed
-    #[arg(short, long, default_value = "html,css,js,atom,stl,xml,svg,json,txt")]
+    #[arg(
+        short,
+        long,
+        default_value = "htm,html,css,js,atom,stl,xml,svg,json,txt"
+    )]
     include_ext: String,
 
     /// Extensions to be not compressed
